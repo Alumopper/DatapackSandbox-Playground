@@ -89,7 +89,7 @@ The package provides execution, completion, diagnostics, persistent state, reusa
 
 Execution summaries expose an expandable, readable command-output list in addition to the raw structured result. Hold <kbd>Ctrl</kbd> (or <kbd>⌘</kbd>) and click an imported function id to open its effective source without leaving the cell; nested calls build a breadcrumb stack, and **Back** or <kbd>Alt</kbd>+<kbd>←</kbd> returns to the caller.
 
-See the repository's `docs/playground.md` for the component API, Worker protocol, limits, imports, presets, rendering boundary, and static deployment guidance.
+See the [Playground documentation](https://github.com/Alumopper/DatapackSandbox-Docs/blob/master/playground.md) for the component API, Worker protocol, limits, imports, presets, rendering boundary, and static deployment guidance. This repository builds its Worker from a pinned, checksum-verified browser bundle published by [DatapackSandbox](https://github.com/Alumopper/DatapackSandbox/releases).
 
 ## Realtime viewport
 

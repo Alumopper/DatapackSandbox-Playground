@@ -1,57 +1,40 @@
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { readFile, rm, mkdir, writeFile } from 'node:fs/promises'
+import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { unzipSync } from 'fflate'
 
-const here = dirname(fileURLToPath(import.meta.url))
-const packageRoot = resolve(here, '..')
-const repoRoot = resolve(packageRoot, '..', '..')
-const wrapper = resolve(repoRoot, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew')
-const result = spawnSync(wrapper, [
-  ':browser-runtime:jsBrowserProductionLibraryDistribution',
-  ':browser-core:generateJavaScript',
-], {
-  cwd: repoRoot,
-  stdio: 'inherit',
-  shell: process.platform === 'win32',
-})
-if (result.status !== 0) process.exit(result.status ?? 1)
-
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const generated = resolve(packageRoot, '.generated')
-const kotlinOutput = resolve(repoRoot, 'browser-runtime', 'build', 'dist', 'js', 'productionLibrary')
-const coreOutput = resolve(repoRoot, 'browser-core', 'build', 'dist', 'js', 'datapack-sandbox-core.js')
-const commandCatalog = resolve(repoRoot, 'schema', 'vanilla', 'vanilla-command-catalog-26.2.json')
+const version = process.env.DPS_BROWSER_VERSION || '1.1.1'
+const asset = `datapack-sandbox-browser-${version}.zip`
+let bytes
+
+if (process.env.DPS_BROWSER_BUNDLE) {
+  bytes = await readFile(resolve(process.env.DPS_BROWSER_BUNDLE))
+} else {
+  const base = `https://github.com/Alumopper/DatapackSandbox/releases/download/${version}`
+  const [archiveResponse, checksumsResponse] = await Promise.all([fetch(`${base}/${asset}`), fetch(`${base}/SHA256SUMS.txt`)])
+  if (!archiveResponse.ok || !checksumsResponse.ok) throw new Error(`Browser release asset is unavailable: ${base}/${asset}`)
+  bytes = Buffer.from(await archiveResponse.arrayBuffer())
+  const sums = await checksumsResponse.text()
+  const line = sums.split(/\r?\n/).find((entry) => entry.trim().endsWith(`  ${asset}`))
+  if (!line) throw new Error(`Missing checksum for ${asset}`)
+  const expected = line.trim().split(/\s+/)[0].toLowerCase()
+  const actual = createHash('sha256').update(bytes).digest('hex')
+  if (actual !== expected) throw new Error(`SHA-256 mismatch for ${asset}: ${actual} != ${expected}`)
+}
+
 await rm(generated, { recursive: true, force: true })
 await mkdir(generated, { recursive: true })
-await cp(kotlinOutput, resolve(generated, 'kotlin'), { recursive: true })
-await cp(coreOutput, resolve(generated, 'datapack-sandbox-core.js'))
-await cp(commandCatalog, resolve(generated, 'vanilla-command-catalog-26.2.json'))
-
-const versionSource = await readFile(resolve(repoRoot, 'core', 'src', 'main', 'kotlin', 'moe', 'afox', 'dpsandbox', 'core', 'VersionProfile.kt'), 'utf8')
-const commonRootStart = versionSource.indexOf('val commonRoots =')
-const commonRootEnd = versionSource.indexOf('val minecraft1204 = CommandProfile', commonRootStart)
-if (commonRootStart < 0 || commonRootEnd < 0) throw new Error('Unable to locate the JVM command catalog')
-const commonRoots = [...versionSource.slice(commonRootStart, commonRootEnd).matchAll(/"([a-z0-9-]+)"/g)].map((match) => match[1])
-
-const profilePattern = /val\s+\w+\s*=\s*profile\(\s*"([^"]+)",\s*java\s*=\s*(\d+),\s*data\s*=\s*(\d+),\s*pack\s*=\s*"([^"]+)"/g
-const profiles = {}
-for (const match of versionSource.matchAll(profilePattern)) {
-  const [, id, javaMajor, dataVersion, dataPackFormat] = match
-  profiles[id] = {
-    id,
-    javaMajor: Number(javaMajor),
-    dataVersion: Number(dataVersion),
-    dataPackFormat,
-    commandRoots: id === '1.20.4' ? commonRoots : [...commonRoots, 'transfer'].sort(),
-  }
+const entries = unzipSync(new Uint8Array(bytes))
+for (const [name, content] of Object.entries(entries)) {
+  if (name.startsWith('/') || name.split('/').includes('..')) throw new Error(`Unsafe browser bundle path: ${name}`)
+  if (name.endsWith('/')) continue
+  const destination = resolve(generated, name)
+  await mkdir(dirname(destination), { recursive: true })
+  await writeFile(destination, content)
 }
-if (!profiles['26.2']) throw new Error('Generated profile catalog is missing 26.2')
-const profileDirectory = resolve(generated, 'profiles')
-await mkdir(profileDirectory, { recursive: true })
-for (const [id, profile] of Object.entries(profiles)) {
-  await writeFile(resolve(profileDirectory, `${id}.json`), `${JSON.stringify(profile)}\n`)
+for (const name of ['kotlin/datapack-sandbox-browser-runtime.mjs', 'datapack-sandbox-core.js', 'vanilla-command-catalog-26.2.json', 'profiles/index.json']) {
+  await readFile(resolve(generated, name))
 }
-await writeFile(
-  resolve(profileDirectory, 'index.json'),
-  `${JSON.stringify({ default: '26.2', profiles: Object.fromEntries(Object.keys(profiles).map((id) => [id, `${id}.json`])) }, null, 2)}\n`,
-)

@@ -8,7 +8,7 @@ const manifest = JSON.parse(await readFile(resolve(packageRoot, 'package.json'),
 
 const expectedMetadata = {
   license: 'MIT',
-  repository: 'git+https://github.com/Alumopper/DatapackSandbox.git',
+  repository: 'git+https://github.com/Alumopper/DatapackSandbox-Playground.git',
   access: 'public',
   registry: 'https://registry.npmjs.org/',
 }
@@ -42,7 +42,8 @@ if (packed.status !== 0) {
 
 let reports
 try {
-  reports = JSON.parse(packed.stdout)
+  const parsed = JSON.parse(packed.stdout)
+  reports = Array.isArray(parsed) ? parsed : Object.values(parsed)
 } catch (error) {
   throw new Error(`npm pack did not return JSON: ${packed.stdout}`, { cause: error })
 }

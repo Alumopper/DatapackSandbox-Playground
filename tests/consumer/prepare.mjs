@@ -25,11 +25,12 @@ try {
     { cwd: packageRoot, maxBuffer: 10 * 1024 * 1024 },
   )
   const packed = JSON.parse(stdout)
-  if (packed.length !== 1 || typeof packed[0]?.filename !== 'string') {
+  const archive = Array.isArray(packed) ? packed[0] : packed['@datapack-sandbox/vitepress-playground']
+  if (typeof archive?.filename !== 'string') {
     throw new Error(`Expected npm pack to produce one tarball, received: ${stdout}`)
   }
 
-  const tarball = resolve(stagingRoot, packed[0].filename)
+  const tarball = resolve(stagingRoot, archive.filename)
   if (!tarball.startsWith(`${stagingRoot}${sep}`)) {
     throw new Error(`Refusing to install a tarball outside the staging directory: ${tarball}`)
   }

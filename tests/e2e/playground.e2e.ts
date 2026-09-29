@@ -542,9 +542,7 @@ test('renders block item and styled text display entities in the local Worker', 
     'summon minecraft:text_display 0 2 2 {text:\'{"text":"DISPLAY","color":"yellow"}\',billboard:"center",background:-13421773,text_opacity:255,shadow:1b,see_through:1b,brightness:{sky:15,block:15}}',
   ].join('\n')
   const editor = cell.locator('.cm-content')
-  await editor.click()
-  await editor.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A')
-  await editor.pressSequentially(source)
+  await editor.fill(source)
   await cell.getByRole('button', { name: 'Run', exact: true }).click()
   await expect(cell.getByText(/Executed 3 commands/)).toBeVisible({ timeout: 15_000 })
   await openMoreActions(cell)

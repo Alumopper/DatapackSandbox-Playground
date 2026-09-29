@@ -8,10 +8,10 @@ Persistent MCFunction notebook cells that execute entirely in an isolated browse
 npm install @datapack-sandbox/vitepress-playground
 ```
 
-For a pinned build, install the [0.2.3 release archive](https://github.com/Alumopper/DatapackSandbox-Playground/releases/tag/vitepress-playground-v0.2.3) directly:
+For a pinned build, download the [0.2.3 release archive](https://github.com/Alumopper/DatapackSandbox-Playground/releases/tag/vitepress-playground-v0.2.3) and install the local file:
 
 ```bash
-npm install https://github.com/Alumopper/DatapackSandbox-Playground/releases/download/vitepress-playground-v0.2.3/datapack-sandbox-vitepress-playground-0.2.3.tgz
+npm install ./datapack-sandbox-vitepress-playground-0.2.3.tgz
 ```
 
 The package requires Vue 3.5 or newer as a peer dependency. It ships the browser runtime, Worker,

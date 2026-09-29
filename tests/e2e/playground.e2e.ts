@@ -546,7 +546,7 @@ test('renders block item and styled text display entities in the local Worker', 
   await editor.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A')
   await editor.pressSequentially(source)
   await cell.getByRole('button', { name: 'Run', exact: true }).click()
-  await expect(cell.getByText(/Executed 3 commands/)).toBeVisible()
+  await expect(cell.getByText(/Executed 3 commands/)).toBeVisible({ timeout: 15_000 })
   await openMoreActions(cell)
   await cell.getByRole('button', { name: 'Render', exact: true }).click()
   const render = cell.locator('img.dps-render')

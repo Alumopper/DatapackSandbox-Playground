@@ -8,6 +8,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,6 +18,9 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - run: npm ci
       - run: npm run check:release-tag -- "$GITHUB_REF_NAME"
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm when credentials are configured
+        if: env.NODE_AUTH_TOKEN != ''
+        run: npm publish --access public --provenance
+      - name: Report missing npm credentials
+        if: env.NODE_AUTH_TOKEN == ''
+        run: echo 'npm publication skipped; configure NPM_TOKEN in this repository.'
